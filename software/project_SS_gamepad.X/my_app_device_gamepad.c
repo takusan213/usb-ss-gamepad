@@ -159,7 +159,7 @@ void ChangeSWMode_Button_Start(void){
         while(BUTTON_IsPressed(BUTTON_START)&&BUTTON_IsPressed(BUTTON_TR)){
             if(INTCONbits.TMR0IF){          // INTCONbits.TMR0IF happens every 4ms
                 cnt_timer++;
-                if(cnt_timer >=500){        // 2s
+                if(cnt_timer >=250){        // 1s
                     flags.sw_flag = ~(flags.sw_flag);
                     cnt_timer =0;
                     while(BUTTON_IsPressed(BUTTON_START)&&BUTTON_IsPressed(BUTTON_TR));
@@ -183,7 +183,7 @@ void ChangeSWMode_Button_Select(void){
         while(BUTTON_IsPressed(BUTTON_START)&&BUTTON_IsPressed(BUTTON_TL)){
             if(INTCONbits.TMR0IF){          // INTCONbits.TMR0IF happens every 4ms
                 cnt_timer++;
-                if(cnt_timer >=500){        // 2s
+                if(cnt_timer >=250){        // 1s
                     switch(flags.crosskey_flag){
                         case 0: flags.crosskey_flag =1; break;
                         case 1: flags.crosskey_flag =2; break;
