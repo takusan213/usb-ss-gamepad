@@ -31,6 +31,7 @@ please contact mla_licensing@microchip.com
 #include "usb_device_hid.h"
 
 #include "app_device_joystick.h"
+#include "mapping.h"
 
 /*******************************************************************
  * Function:        bool USER_USB_CALLBACK_EVENT_HANDLER(
@@ -117,8 +118,36 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
     return true;
 }
 
+static uint8_t featureBuf[64];            // 受信用バッファ
+static USB_HANDLE featureRxHandle = 0;    // ハンドルはグローバルで共有
+
+/* ---------- ① SET_REPORT が来た瞬間に呼ばれる ---------- */
+void HIDFeatureReceive(void)
+{
+    /* まだ転送中なら何もしない */
+    if(HIDRxHandleBusy(featureRxHandle)) return;
+
+    /* EP番号は JOYSTICK_EP で OK。64B 受信を予約 */
+    featureRxHandle = HIDRxPacket(JOYSTICK_EP, featureBuf, sizeof(featureBuf));
+}
+
+/* ---------- ② 64B受信し終わったとき自動で呼ばれる ---------- */
+void USBCB_HIDSetReportComplete(void)
+{
+    /* 受信済みか確認してバッファを取り出す */
+    if(!HIDRxHandleBusy(featureRxHandle))
+    {
+        /* Report ID チェック */
+        if(featureBuf[0] == 0x02)
+        {
+            Mapping_Save(&featureBuf[1]);     // 先頭14Bを保存
+        }
+
+        /* 次のSET_REPORTに備えてハンドルを無効化 */
+        featureRxHandle = 0;
+    }
+}
 
 /*******************************************************************************
- End of File
+End of File
 */
-

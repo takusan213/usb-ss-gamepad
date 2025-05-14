@@ -62,7 +62,7 @@ void APP_DeviceJoystickInitialize(void)
 }//end UserInit
 
 /*********************************************************************
-* Function: void APP_DeviceJoystickTasks(void);
+    * Function: void APP_DeviceJoystickTasks(void);
 *
 * Overview: Keeps the demo running.
 *

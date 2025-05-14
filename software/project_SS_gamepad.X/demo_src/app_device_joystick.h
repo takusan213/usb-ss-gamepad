@@ -45,6 +45,7 @@ typedef union _INTPUT_CONTROLS_TYPEDEF
 {
     struct
     {
+        uint8_t report_id;   // Report ID must be first byte (always 1 for input report)
         struct
         {
             uint8_t a:1;
@@ -76,7 +77,7 @@ typedef union _INTPUT_CONTROLS_TYPEDEF
             uint8_t Rz;            
         } analog_stick;
     } members;
-    uint8_t val[7];
+    uint8_t val[8];    // +1 for report_id
 } INPUT_CONTROLS;
 
 

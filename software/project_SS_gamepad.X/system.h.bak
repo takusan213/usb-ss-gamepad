@@ -24,7 +24,7 @@ please contact mla_licensing@microchip.com
 #include <stdbool.h>
 
 #include "buttons.h"
-#include "mcc_generated_files/nvm/nvm.h"
+
 #include "io_mapping.h"
 #include "fixed_address_memory.h"
 

@@ -253,6 +253,9 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x05,0x01,        //USAGE_PAGE (Generic Desktop)
   0x09,0x05,        //USAGE (Game Pad)
   0xA1,0x01,        //COLLECTION (Application)
+
+  0x85,0x01,        // REPORT_ID (1) for input report
+  
   0x15,0x00,        //  LOGICAL_MINIMUM(0)
   0x25,0x01,        //  LOGICAL_MAXIMUM(1)
   0x35,0x00,        //  PHYSICAL_MINIMUM(0)
@@ -265,6 +268,7 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x81,0x02,        //  INPUT(Data,Var,Abs)
   0x95,0x02,        //  REPORT_COUNT(2) for the useless padding bits
   0x81,0x01,        //  INPUT(Cnst,Ary,Abs)
+  
   0x05,0x01,        //  USAGE_PAGE(Generic Desktop)
   0x25,0x07,        //  LOGICAL_MAXIMUM(7)
   0x46,0x3B,0x01,   //  PHYSICAL_MAXIMUM(315)
@@ -276,6 +280,7 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x65,0x00,        //  UNIT(None)
   0x95,0x01,        //  REPORT_COUNT(1)
   0x81,0x01,        //  INPUT(Cnst,Ary,Abs)
+
   0x26,0xFF,0x00,   //  LOGICAL_MAXIMUM(255)
   0x46,0xFF,0x00,   //  PHYSICAL_MAXIMUM(255)
   0x09,0x30,        //  USAGE(X)
@@ -285,8 +290,18 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x75,0x08,        //  REPORT_SIZE(8)
   0x95,0x04,        //  REPORT_COUNT(4)
   0x81,0x02,        //  INPUT(Data,Var,Abs)
+
+  // ----- Feature Report (64 B) -----
+  0x85,0x02,        // REPORT_ID (2)
+  0x06,0x00,0xFF,   // USAGE_PAGE (Vendor-Defined 0xFF00)
+  0x09,0x01,        // USAGE (Vendor Usage 1)
+  0x19,0x01,        // USAGE_MINIMUM (1)
+  0x29,0x40,        // USAGE_MAXIMUM (64)
+  0x75,0x08,        // REPORT_SIZE (8)
+  0x95,0x40,        // REPORT_COUNT (64)
+  0xB1,0x03,        // FEATURE (Data,Var,Abs)
+
   0xC0              //END_COLLECTION
 }
 };
 /** EOF usb_descriptors.c ***************************************************/
-

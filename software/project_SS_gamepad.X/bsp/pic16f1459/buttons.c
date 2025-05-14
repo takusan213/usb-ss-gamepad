@@ -45,6 +45,6 @@
 ********************************************************************/
 bool BUTTON_IsPressed(BUTTON button)
 {
-    return ( (button == BUTTON_PRESSED) ? true : false);
+    return ((button == BUTTON_PRESSED) ? true : false);
 }
 
