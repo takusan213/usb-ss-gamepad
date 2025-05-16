@@ -169,7 +169,7 @@ please contact mla_licensing@microchip.com
 #define HID_INT_IN_EP_SIZE      64
 #define HID_NUM_OF_DSC          1   // Number of HID class descriptors per interface
 #define HID_RPT01_SIZE          74      //number of bytes in HID report descriptor (counted exactly)
-#define HID_MAP_RPT_SIZE        64      //size of the mapping Feature report
+// #define HID_MAP_RPT_SIZE        64      //size of the mapping Feature report
 
 /** DEFINITIONS ****************************************************/
 

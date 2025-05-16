@@ -50,6 +50,7 @@ void App_DeviceGamepadInit(void){
  * @param usage HID usage value (1-14)
  * @param pressed Whether the button is pressed
  */
+// 注意: この関数は現在使用されていませんが、マッピング機能のために残しています
 static void SetHIDButtonField(INPUT_CONTROLS* gamepad_input, uint8_t usage, bool pressed) {
     // Button bits are stored in bitfields, so we have to set each one individually based on usage
     switch(usage) {
@@ -75,90 +76,96 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
 
     // No Report ID in Interface 0
     
-    // Clear all button fields by zeroing the raw bytes
-    // 効率的にメモリクリア (2バイト分)
-    gamepad_input->val[0] = 0;  // ボタンデータ
-    gamepad_input->val[1] = 0;  // ハットスイッチデータ
+    // Clear all button fields and data by zeroing all bytes
+    // 完全にメモリをクリアする
+    for (int i = 0; i < sizeof(INPUT_CONTROLS); i++) {
+        gamepad_input->val[i] = 0;
+    }
+    
+    // ハットスイッチはデフォルトでNULL(8)に設定
+    gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
+    
+    // D-Padの状態を取得（全ての処理で使えるように上部で定義）
+    bool up = BUTTON_IsPressed(BUTTON_UP);
+    bool down = BUTTON_IsPressed(BUTTON_DOWN);
+    bool left = BUTTON_IsPressed(BUTTON_LEFT);
+    bool right = BUTTON_IsPressed(BUTTON_RIGHT);
 
     // Directly set start button (not using mapping)
     // START ボタンだけは特別扱い - 常にそのまま使う
     gamepad_input->members.buttons.start = BUTTON_IsPressed(BUTTON_START);        
 
     if(flags.sw_flag == false) {
-        // マッピングを使用してメモリ効率の良い実装
-        // Button 0: A
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(0), BUTTON_IsPressed(BUTTON_A));
-        // Button 1: B
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(1), BUTTON_IsPressed(BUTTON_B));
-        // Button 2: C
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(2), BUTTON_IsPressed(BUTTON_C));
-        // Button 3: X
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(3), BUTTON_IsPressed(BUTTON_X));
-        // Button 4: Y
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(4), BUTTON_IsPressed(BUTTON_Y));
-        // Button 5: Z
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(5), BUTTON_IsPressed(BUTTON_Z));
-        // Button 6: L1
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(6), BUTTON_IsPressed(BUTTON_TL));
-        // Button 7: R1
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(7), BUTTON_IsPressed(BUTTON_TR));
+        // 直接紐づけに変更する - マッピング機能を回避して直接設定
+        gamepad_input->members.buttons.a = BUTTON_IsPressed(BUTTON_A);
+        gamepad_input->members.buttons.b = BUTTON_IsPressed(BUTTON_B);
+        gamepad_input->members.buttons.c = BUTTON_IsPressed(BUTTON_C);
+        gamepad_input->members.buttons.x = BUTTON_IsPressed(BUTTON_X);
+        gamepad_input->members.buttons.y = BUTTON_IsPressed(BUTTON_Y);
+        gamepad_input->members.buttons.z = BUTTON_IsPressed(BUTTON_Z);
+        gamepad_input->members.buttons.L1 = BUTTON_IsPressed(BUTTON_TL);
+        gamepad_input->members.buttons.R1 = BUTTON_IsPressed(BUTTON_TR);
 
-        // D-Padを直接HATスイッチとして処理（マッピングなし、メモリ効率良）
-        if(BUTTON_IsPressed(BUTTON_UP) && BUTTON_IsPressed(BUTTON_LEFT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
-        } else if(BUTTON_IsPressed(BUTTON_UP) && BUTTON_IsPressed(BUTTON_RIGHT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
-        } else if(BUTTON_IsPressed(BUTTON_DOWN) && BUTTON_IsPressed(BUTTON_LEFT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
-        } else if(BUTTON_IsPressed(BUTTON_DOWN) && BUTTON_IsPressed(BUTTON_RIGHT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
-        } else if(BUTTON_IsPressed(BUTTON_UP)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
-        } else if(BUTTON_IsPressed(BUTTON_RIGHT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
-        } else if(BUTTON_IsPressed(BUTTON_DOWN)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
-        } else if(BUTTON_IsPressed(BUTTON_LEFT)) {
-            gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
+        // D-PadをHATスイッチとして処理 (上で定義した変数を使用)
+        
+        // HATスイッチとして処理 - MODE 0の場合のみ
+        if (flags.crosskey_flag == 0) {
+            if(up && left) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
+            } else if(up && right) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
+            } else if(down && left) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
+            } else if(down && right) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
+            } else if(up) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
+            } else if(right) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
+            } else if(down) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
+            } else if(left) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
+            } else {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
+            }
         }
 
     } else if(flags.sw_flag == true) {
-        // 代替モード - マッピングを使用
-        // Button 0: A - 基本ボタンは通常通り
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(0), BUTTON_IsPressed(BUTTON_A));
-        // Button 1: B
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(1), BUTTON_IsPressed(BUTTON_B));
-        // Button 2: C
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(2), BUTTON_IsPressed(BUTTON_C));
-        // 特殊ボタンのマッピング
-        // Button 8: L2 (TL)
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(8), BUTTON_IsPressed(BUTTON_TL));
-        // Button 9: R2 (TR)
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(9), BUTTON_IsPressed(BUTTON_TR));
-        // Button 10: left_stick (Y)
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(10), BUTTON_IsPressed(BUTTON_Y));
-        // Button 11: right_stick (X)
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(11), BUTTON_IsPressed(BUTTON_X));
-        // Button 12: home (Z)
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(12), BUTTON_IsPressed(BUTTON_Z));      
+        // 代替モード - 直接紐づけに変更
+        // 下位互換性のために基本ボタンを維持
+        gamepad_input->members.buttons.a = BUTTON_IsPressed(BUTTON_A);
+        gamepad_input->members.buttons.b = BUTTON_IsPressed(BUTTON_B);
+        gamepad_input->members.buttons.c = BUTTON_IsPressed(BUTTON_C);
+        // 特殊ボタンの直接マッピング
+        gamepad_input->members.buttons.L2 = BUTTON_IsPressed(BUTTON_TL);
+        gamepad_input->members.buttons.R2 = BUTTON_IsPressed(BUTTON_TR);
+        gamepad_input->members.buttons.left_stick = BUTTON_IsPressed(BUTTON_Y);
+        gamepad_input->members.buttons.right_stick = BUTTON_IsPressed(BUTTON_X);
+        gamepad_input->members.buttons.home = BUTTON_IsPressed(BUTTON_Z);
     }
 
 
-    // アナログスティック処理 - より省メモリな実装
-    // X軸 (左右)
+    // アナログスティック処理
+    // いつでも中央値を設定
     gamepad_input->members.analog_stick.X = 128;  // デフォルト中央
-    if(BUTTON_IsPressed(BUTTON_LEFT)){
-        gamepad_input->members.analog_stick.X = 0;   // 左
-    }else if(BUTTON_IsPressed(BUTTON_RIGHT)){
-        gamepad_input->members.analog_stick.X = 255; // 右
-    }
-    
-    // Y軸 (上下)
     gamepad_input->members.analog_stick.Y = 128;  // デフォルト中央
-    if(BUTTON_IsPressed(BUTTON_UP)){
-        gamepad_input->members.analog_stick.Y = 0;   // 上
-    }else if(BUTTON_IsPressed(BUTTON_DOWN)){
-        gamepad_input->members.analog_stick.Y = 255; // 下
+    
+    // MODE 1の場合のみアナログ入力を有効化
+    if (flags.crosskey_flag == 1) {
+        // X軸 (左右)
+        if(left){
+            gamepad_input->members.analog_stick.X = 0;   // 左
+        }else if(right){
+            gamepad_input->members.analog_stick.X = 255; // 右
+        }
+        
+        // Y軸 (上下)
+        if(up){
+            gamepad_input->members.analog_stick.Y = 0;   // 上
+        }else if(down){
+            gamepad_input->members.analog_stick.Y = 255; // 下
+        }
     }
     
     // 他のアナログ値を標準の128に設定
@@ -173,52 +180,63 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
         SetHIDButtonField(gamepad_input, Mapping_GetUsage(12), true);
     }
 
-    // initialize z axis and rz axis 
-    gamepad_input->val[5] = 0x80;
-    gamepad_input->val[6] = 0x80;        
+    // Z軸とRz軸の初期化
+    // report_idフィールドが削除されたのでインデックスを修正
+    gamepad_input->members.analog_stick.Z = 0x80;   // 中央位置 (128)
+    gamepad_input->members.analog_stick.Rz = 0x80;  // 中央位置 (128)
 
-    // hat switch mode
-    switch(flags.crosskey_flag){
-        case 0:     //xy mode
-        /*DO NOTHING*/            
-        break;
-        
-        case 1:     //hat sw mode
-            if((gamepad_input->val[3] == 0x00) && (gamepad_input->val[4] == 0x80)){
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
-            } else if((gamepad_input->val[3] == 0x00) && (gamepad_input->val[4] == 0x00)){
+
+    // クロスキーモード処理
+    switch(flags.crosskey_flag) {
+        // モード0: HATスイッチのみ有効 (アナログは中立固定)
+        case 0:
+            // このモードではHATスイッチが既に上で設定済み
+            // アナログスティックは中立に設定済み
+            break;
+            
+        // モード1: HATスイッチ+アナログXY (両方有効)
+        case 1:
+            // アナログ値は上で設定済み
+            
+            // HATスイッチも設定 (同じ値をマニュアルでセット)
+            if(up && left) {
                 gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
-            } else if ((gamepad_input->val[3] == 0x80) && (gamepad_input->val[4] == 0x00)){
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
-            } else if ((gamepad_input->val[3] == 0xFF) && (gamepad_input->val[4] == 0x00)){
+            } else if(up && right) {
                 gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
-            } else if ((gamepad_input->val[3] == 0xFF) && (gamepad_input->val[4] == 0x80)){
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
-            } else if ((gamepad_input->val[3] == 0xFF) && (gamepad_input->val[4] == 0xFF)){
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
-            } else if ((gamepad_input->val[3] == 0x80) && (gamepad_input->val[4] == 0xFF)){
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
-            } else if ((gamepad_input->val[3] == 0x00) && (gamepad_input->val[4] == 0xFF)){
+            } else if(down && left) {
                 gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
-            } 
-
-            gamepad_input->val[3] = 0x80;
-            gamepad_input->val[4] = 0x80;
-            
+            } else if(down && right) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
+            } else if(up) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
+            } else if(right) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
+            } else if(down) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
+            } else if(left) {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
+            } else {
+                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
+            }
             break;
-    
-        case 2:     // z rz mode
-            gamepad_input->val[5] = gamepad_input->val[3];
-            gamepad_input->val[6] = gamepad_input->val[4];
-
-            gamepad_input->val[3] = 0x80;
-            gamepad_input->val[4] = 0x80;            
             
+        // モード2: 何も反応しない
+        case 2:
+            // 既にHATスイッチはNULLに設定済み
+            // アナログスティックは中立に設定済み
             break;
             
+        // 不明なモード: モード0と同じ
         default:
-            /*DO NOTHING*/
+            // ここには何も記述しない - 全てのモード処理は上のクロスキーモード処理で完了
             break;
+    }
+    
+    // クロスキーモードが2(Z/RZモード)の場合のみ特別処理
+    if (flags.crosskey_flag == 2) {
+        // アナログスティックのX/Y値をZ/RZにコピーし、X/Yは中立に設定
+        gamepad_input->members.analog_stick.Z = left ? 0 : (right ? 255 : 128);
+        gamepad_input->members.analog_stick.Rz = up ? 0 : (down ? 255 : 128);
     }
     
     return;
