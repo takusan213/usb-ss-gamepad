@@ -10,19 +10,13 @@
         <logicalFolder name="nvm" displayName="nvm" projectFiles="true">
           <itemPath>mcc_generated_files/nvm/nvm.h</itemPath>
         </logicalFolder>
-        <logicalFolder name="system" displayName="system" projectFiles="true">
-          <itemPath>mcc_generated_files/system/system.h</itemPath>
-          <itemPath>mcc_generated_files/system/config_bits.h</itemPath>
-          <itemPath>mcc_generated_files/system/interrupt.h</itemPath>
-          <itemPath>mcc_generated_files/system/pins.h</itemPath>
-          <itemPath>mcc_generated_files/system/clock.h</itemPath>
-        </logicalFolder>
       </logicalFolder>
       <logicalFolder name="usb" displayName="usb" projectFiles="true">
         <itemPath>usb_framework/inc/usb.h</itemPath>
         <itemPath>usb_framework/inc/usb_device_hid.h</itemPath>
         <itemPath>usb_framework/inc/usb_hal_pic16f1.h</itemPath>
         <itemPath>my_usb_pid.h</itemPath>
+        <itemPath>demo_src/hid_rpt_map.h</itemPath>
       </logicalFolder>
       <itemPath>io_mapping.h</itemPath>
       <itemPath>fixed_address_memory.h</itemPath>
@@ -51,15 +45,6 @@
         <logicalFolder name="nvm" displayName="nvm" projectFiles="true">
           <logicalFolder name="src" displayName="src" projectFiles="true">
             <itemPath>mcc_generated_files/nvm/src/nvm.c</itemPath>
-          </logicalFolder>
-        </logicalFolder>
-        <logicalFolder name="system" displayName="system" projectFiles="true">
-          <logicalFolder name="src" displayName="src" projectFiles="true">
-            <itemPath>mcc_generated_files/system/src/clock.c</itemPath>
-            <itemPath>mcc_generated_files/system/src/interrupt.c</itemPath>
-            <itemPath>mcc_generated_files/system/src/system.c</itemPath>
-            <itemPath>mcc_generated_files/system/src/config_bits.c</itemPath>
-            <itemPath>mcc_generated_files/system/src/pins.c</itemPath>
           </logicalFolder>
         </logicalFolder>
       </logicalFolder>
@@ -284,38 +269,6 @@
         <property key="user-pack-device-support" value=""/>
         <property key="wpo-lto" value="false"/>
       </XC8-config-global>
-      <item path="mcc_generated_files/system/clock.h" ex="true" overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/config_bits.h"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/interrupt.h"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/pins.h" ex="true" overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/src/clock.c"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/src/config_bits.c"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/src/interrupt.c"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/src/pins.c" ex="true" overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/src/system.c"
-            ex="true"
-            overriding="false">
-      </item>
-      <item path="mcc_generated_files/system/system.h" ex="true" overriding="false">
-      </item>
     </conf>
   </confs>
 </configurationDescriptor>

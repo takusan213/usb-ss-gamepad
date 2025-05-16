@@ -10,6 +10,7 @@ Mapping functionality for button-to-usage configuration
 #include <string.h>
 // NVM ドライバを使う
 #include "mcc_generated_files/nvm/nvm.h"
+#include "demo_src/hid_rpt_map.h"
 
 /* RAM working copy of the mapping data */
 static struct {
@@ -106,4 +107,57 @@ void Mapping_Save(const uint8_t *tbl) {
  */
 uint8_t Mapping_GetUsage(uint8_t physBtn) {
     return map.tbl[physBtn];
+}
+
+/**
+ * Copy mapping data from Feature Report buffer to the mapping table
+ * @param featureReport The feature report buffer received from the host
+ * @param length Length of the feature report data
+ */
+void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
+    // Report ID may or may not be in the buffer depending on the implementation
+    // For safety, assume data starts at index 0
+    uint8_t dataOffset = 0;
+    
+    // Check if the first byte is Report ID 1
+    if (length > 0 && featureReport[0] == 0x01) {
+        // Skip Report ID byte
+        dataOffset = 1;
+    }
+    
+    // Determine how many mapping bytes we can copy
+    uint8_t maxBytes = (length - dataOffset > NUM_BUTTONS) ? NUM_BUTTONS : length - dataOffset;
+    uint8_t newMapping[NUM_BUTTONS];
+    
+    // Copy data from feature report
+    for (uint8_t i = 0; i < maxBytes; i++) {
+        newMapping[i] = featureReport[i + dataOffset];
+    }
+    
+    // For any remaining buttons, use existing mapping
+    for (uint8_t i = maxBytes; i < NUM_BUTTONS; i++) {
+        newMapping[i] = map.tbl[i];
+    }
+    
+    // Save the new mapping to flash
+    Mapping_Save(newMapping);
+}
+
+/**
+ * Copy mapping data from the mapping table to the Feature Report buffer
+ * @param featureReport The feature report buffer to be sent to the host
+ */
+void Mapping_GetAsFeatureReport(uint8_t* featureReport) {
+    // Set Report ID as first byte
+    featureReport[0] = 0x01;  // Report ID 1
+    
+    // Copy mapping table to feature report (starting at index 1)
+    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+        featureReport[i + 1] = map.tbl[i];
+    }
+    
+    // Fill remaining bytes with zeros
+    for (uint8_t i = NUM_BUTTONS + 1; i < HID_MAP_RPT_SIZE; i++) {
+        featureReport[i] = 0;
+    }
 }

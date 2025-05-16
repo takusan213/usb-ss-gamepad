@@ -34,7 +34,7 @@ please contact mla_licensing@microchip.com
 								// that use EP0 IN or OUT for sending large amounts of
 								// application related data.
 									
-#define USB_MAX_NUM_INT     	1   //Set this number to match the maximum interface number used in the descriptors for this firmware project
+#define USB_MAX_NUM_INT     	2   //Set this number to match the maximum interface number used in the descriptors for this firmware project
 #define USB_MAX_EP_NUMBER	    1   //Set this number to match the maximum endpoint number used in the descriptors for this firmware project
 
 //Device descriptor - if these two definitions are not defined then
@@ -167,8 +167,9 @@ please contact mla_licensing@microchip.com
 #define JOYSTICK_EP		1
 #define HID_INT_OUT_EP_SIZE     64
 #define HID_INT_IN_EP_SIZE      64
-#define HID_NUM_OF_DSC          1
-#define HID_RPT01_SIZE          93      //number of bytes in HID report descriptor (counted exactly)
+#define HID_NUM_OF_DSC          1   // Number of HID class descriptors per interface
+#define HID_RPT01_SIZE          74      //number of bytes in HID report descriptor (counted exactly)
+#define HID_MAP_RPT_SIZE        64      //size of the mapping Feature report
 
 /** DEFINITIONS ****************************************************/
 

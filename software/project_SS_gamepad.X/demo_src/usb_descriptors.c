@@ -150,6 +150,7 @@ state according to the definition in the USB specification.
 #include "usb.h"
 #include "usb_device_hid.h"
 #include "my_usb_pid.h"
+#include "hid_rpt_map.h"
 
 /** CONSTANTS ******************************************************/
 #if defined(COMPILER_MPLAB_C18)
@@ -176,26 +177,26 @@ const USB_DEVICE_DESCRIPTOR device_dsc=
 };
 
 /* Configuration 1 Descriptor */
-const uint8_t configDescriptor1[]={
-    /* Configuration Descriptor */
-    0x09,//sizeof(USB_CFG_DSC),    // Size of this descriptor in bytes
-    USB_DESCRIPTOR_CONFIGURATION,                // CONFIGURATION descriptor type
-    DESC_CONFIG_WORD(0x0022),                   // Total length of data for this cfg
-    1,                      // Number of interfaces in this cfg
+const uint8_t configDescriptor1[]={        
+    /* Configuration Descriptor */    
+    0x09,//sizeof(USB_CFG_DSC),    // Size of this descriptor in bytes     
+    USB_DESCRIPTOR_CONFIGURATION,                // CONFIGURATION descriptor type      
+    DESC_CONFIG_WORD(0x0034),                   // Total length of data for this cfg
+    2,                      // Number of interfaces in this cfg
     1,                      // Index value of this configuration
     0,                      // Configuration string index
-    _DEFAULT | _SELF,               // Attributes, see usb_device.h
+    _DEFAULT | _SELF,       // Attributes, see usb_device.h
     50,                     // Max power consumption (2X mA)
 
-    /* Interface Descriptor */
-    0x09,//sizeof(USB_INTF_DSC),   // Size of this descriptor in bytes
-    USB_DESCRIPTOR_INTERFACE,               // INTERFACE descriptor type
-    0,                      // Interface Number
-    0,                      // Alternate Setting Number
-    1,                      // Number of endpoints in this intf
-    HID_INTF,               // Class code
-    0,     // Subclass code
-    0,     // Protocol code
+    /* Interface Descriptor (Interface 0: GamePad) */    
+    0x09,//sizeof(USB_INTF_DSC),   // Size of this descriptor in bytes    
+    USB_DESCRIPTOR_INTERFACE,               // INTERFACE descriptor type    
+    0,                      // Interface Number    
+    0,                      // Alternate Setting Number    
+    1,                      // Number of endpoints in this intf    
+    HID_INTF,               // Class code    
+    0,     // Subclass code    
+    0,     // Protocol code    
     0,                      // Interface string index
 
     /* HID Class-Specific Descriptor */
@@ -214,6 +215,27 @@ const uint8_t configDescriptor1[]={
     _INTERRUPT,                       //Attributes
     DESC_CONFIG_WORD(64),        //size
     0x01,                        //Interval
+
+    /* Interface Descriptor (Interface 1: Vendor Feature) */    
+    0x09,//sizeof(USB_INTF_DSC),   // Size of this descriptor in bytes    
+    USB_DESCRIPTOR_INTERFACE,               // INTERFACE descriptor type    
+    1,                      // Interface Number    
+    0,                      // Alternate Setting Number    
+    0,                      // Number of endpoints in this intf    
+    HID_INTF,               // Class code    
+    0xFF,                   // Subclass code - Vendor defined    
+    0xFF,                   // Protocol code - Vendor defined    
+    0,                      // Interface string index
+
+    /* HID Class-Specific Descriptor */
+    0x09,//sizeof(USB_HID_DSC)+3,    // Size of this descriptor in bytes
+    DSC_HID,                // HID descriptor type
+    DESC_CONFIG_WORD(0x0111),                 // HID Spec Release Number in BCD format (1.11)
+    0x00,                   // Country Code (0x00 for Not supported)
+    HID_NUM_OF_DSC,         // Number of class descriptors, see usbcfg.h
+    DSC_RPT,                // Report descriptor type
+    DESC_CONFIG_WORD(HID_MAP_RPT_SIZE),   // Size of the report descriptor
+    // No endpoint descriptors for Interface 1
 };
 
 
@@ -253,8 +275,6 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x05,0x01,        //USAGE_PAGE (Generic Desktop)
   0x09,0x05,        //USAGE (Game Pad)
   0xA1,0x01,        //COLLECTION (Application)
-
-  0x85,0x01,        // REPORT_ID (1) for input report
   
   0x15,0x00,        //  LOGICAL_MINIMUM(0)
   0x25,0x01,        //  LOGICAL_MAXIMUM(1)
@@ -291,17 +311,6 @@ const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x95,0x04,        //  REPORT_COUNT(4)
   0x81,0x02,        //  INPUT(Data,Var,Abs)
 
-  // ----- Feature Report (64 B) -----
-  0x85,0x02,        // REPORT_ID (2)
-  0x06,0x00,0xFF,   // USAGE_PAGE (Vendor-Defined 0xFF00)
-  0x09,0x01,        // USAGE (Vendor Usage 1)
-  0x19,0x01,        // USAGE_MINIMUM (1)
-  0x29,0x40,        // USAGE_MAXIMUM (64)
-  0x75,0x08,        // REPORT_SIZE (8)
-  0x95,0x40,        // REPORT_COUNT (64)
-  0xB1,0x03,        // FEATURE (Data,Var,Abs)
-
   0xC0              //END_COLLECTION
-}
-};
+}};
 /** EOF usb_descriptors.c ***************************************************/

@@ -9,10 +9,6 @@ Mapping functionality for button-to-usage configuration
 
 #include <stdint.h>
 
-// Prototypes for flash read/write routines
-void flash_read_block16(uint16_t *dest, uint16_t address, uint16_t count);
-void flash_write_block16(uint16_t address, uint16_t *data);
-
 #define NUM_BUTTONS 14
 
 /**
@@ -32,5 +28,18 @@ void Mapping_Save(const uint8_t *tbl);
  * @return Usage value (1-14)
  */
 uint8_t Mapping_GetUsage(uint8_t physBtn);
+
+/**
+ * Copy mapping data from Feature Report buffer to the mapping table
+ * @param featureReport The feature report buffer received from the host
+ * @param length Length of the feature report data
+ */
+void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length);
+
+/**
+ * Copy mapping data from the mapping table to the Feature Report buffer
+ * @param featureReport The feature report buffer to be sent to the host
+ */
+void Mapping_GetAsFeatureReport(uint8_t* featureReport);
 
 #endif /* _MAPPING_H */

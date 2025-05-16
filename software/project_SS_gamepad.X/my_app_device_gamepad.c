@@ -23,6 +23,9 @@ limitations under the License.
 #include "usb.h"
 #include "usb_device_hid.h"
 #include "mapping.h"
+#include "hid_rpt_map.h"
+#include "usb_framework/inc/usb_ch9.h"
+#include "usb_framework/inc/usb_device.h"
 
 typedef struct _Flags{
     uint8_t crosskey_flag :2 ;
@@ -32,6 +35,9 @@ typedef struct _Flags{
 
 
 Flags flags;
+
+// The HIDFeatureReceive function has been moved to usb_events.c
+// to handle both Interface 0 and Interface 1 Feature reports
 
 void App_DeviceGamepadInit(void){
     flags.crosskey_flag = 0;
@@ -67,13 +73,12 @@ static void SetHIDButtonField(INPUT_CONTROLS* gamepad_input, uint8_t usage, bool
 
 void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
 
-    // Set Report ID first (新しく追加したフィールド)
-    gamepad_input->members.report_id = 0x01;  // Always use Report ID 1 for input reports
-
-    // Clear all button fields by zeroing the raw bytes (skip report_id byte at index 0)
+    // No Report ID in Interface 0
+    
+    // Clear all button fields by zeroing the raw bytes
     // 効率的にメモリクリア (2バイト分)
-    gamepad_input->val[1] = 0;  // ボタンデータ
-    gamepad_input->val[2] = 0;  // ハットスイッチデータ
+    gamepad_input->val[0] = 0;  // ボタンデータ
+    gamepad_input->val[1] = 0;  // ハットスイッチデータ
 
     // Directly set start button (not using mapping)
     // START ボタンだけは特別扱い - 常にそのまま使う
