@@ -234,7 +234,7 @@ const uint8_t configDescriptor1[]={
     0x00,                   // Country Code (0x00 for Not supported)
     HID_NUM_OF_DSC,         // Number of class descriptors, see usbcfg.h
     DSC_RPT,                // Report descriptor type
-    DESC_CONFIG_WORD(HID_MAP_RPT_SIZE),   // Size of the report descriptor
+    DESC_CONFIG_WORD(HID_MAP_RPT_DESC_SIZE),   // Size of the report descriptor
     // No endpoint descriptors for Interface 1
 };
 
@@ -270,6 +270,8 @@ const uint8_t *const USB_SD_Ptr[]=
     (const uint8_t *const)&sd001,
     (const uint8_t *const)&sd002
 };
+
+// HID_MAP_RPT_SIZE は用途別に HID_MAP_RPT_DESC_SIZE または HID_MAP_EP_BUF_SIZE を使ってください
 
 const struct{uint8_t report[HID_RPT01_SIZE];}hid_rpt01={{
   0x05,0x01,        //USAGE_PAGE (Generic Desktop)

@@ -1,9 +1,10 @@
 #ifndef HID_RPT_MAP_H
 #define HID_RPT_MAP_H
 
-#define HID_MAP_RPT_SIZE 21
+#define HID_MAP_RPT_DESC_SIZE 21   // レポートディスクリプタのサイズ
+#define HID_MAP_EP_BUF_SIZE   64   // USB EP送受信バッファのサイズ
 
-const struct{uint8_t report[HID_MAP_RPT_SIZE];}hid_map_rpt={{ 
+const struct{uint8_t report[HID_MAP_RPT_DESC_SIZE];}hid_map_rpt={{ 
   0x06,0x00,0xFF,            // Usage Page (Vendor Defined Page 1, 0xFF00)
   0x09,0x01,                 // Usage (Vendor Usage 1)
   0xA1,0x01,                 // Collection (Application)

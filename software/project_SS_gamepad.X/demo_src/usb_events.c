@@ -132,33 +132,45 @@ void HIDFeatureReceive(void)
     uint8_t reportID = SetupPkt.W_Value.byte.LB;  // Report ID is in the low byte of wValue
     uint8_t interfaceNum = SetupPkt.W_Index.byte.LB;  // Interface number is in the low byte of wIndex
     
-    // Handle Interface 0 with Report ID 2 (old implementation)
-    if (interfaceNum == 0 && reportID == 0x02) {
-        /* まだ転送中なら何もしない */
-        if(HIDRxHandleBusy(featureRxHandle)) return;
+    // デバッグメッセージを表示（実際のコードでは削除可能）
+    // printf("HIDFeatureReceive: Interface=%d, ReportID=0x%02X, Request=0x%02X\n", 
+    //       interfaceNum, reportID, SetupPkt.bRequest);
+    
+    // Handle Interface 0 (Gamepad interface)
+    // if (interfaceNum == 0) {
+    //     // Gamepad interface GET_REPORT handling
+    //     if (SetupPkt.bRequest == GET_REPORT) {
+    //         // Send empty or default report - gamepad doesn't support GET_REPORT
+    //         // または、ステータスパケットを送信して処理を完了させる
+    //         USBStallEndpoint(0, 0);  // STALL for unsupported requests
+    //     }
+    //     // Gamepad interface SET_REPORT handling (if needed)
+    //     else if (SetupPkt.bRequest == SET_REPORT) {
+    //         /* まだ転送中なら何もしない */
+    //         if(HIDRxHandleBusy(featureRxHandle)) return;
 
-        /* EP番号は JOYSTICK_EP で OK。64B 受信を予約 */
-        featureRxHandle = HIDRxPacket(JOYSTICK_EP, featureBuf, sizeof(featureBuf));
-    }
-    // Handle Interface 1 with Report ID 1 (new mapping interface)
-    else if (interfaceNum == 1 && reportID == 0x01) {
+    //         /* EP番号は JOYSTICK_EP で OK。64B 受信を予約 */
+    //         featureRxHandle = HIDRxPacket(JOYSTICK_EP, featureBuf, sizeof(featureBuf));
+    //     }
+    // }
+    // Handle Interface 1 (Mapping interface)
+    if (interfaceNum == 1) {
         // Check if this is SET_REPORT (from host to device)
         if (SetupPkt.bRequest == SET_REPORT) {
             // SET_REPORT - receive data from host via control transfer
-            USBEP0Receive(mapFeatureBuf, sizeof(mapFeatureBuf), NULL);
+            USBEP0Receive(mapFeatureBuf, HID_MAP_EP_BUF_SIZE, NULL);
 
-            // Process the mapping data
-            // Note: The actual feature report data will be processed after EP0 transfer completes
-            // in the USB interrupt, but for simplicity we'll process it here
+            // Process the mapping data immediately after receiving
             Mapping_SetFromFeatureReport(mapFeatureBuf, sizeof(mapFeatureBuf));
         } 
         else if (SetupPkt.bRequest == GET_REPORT) {
             // GET_REPORT - send data to host
             // Prepare feature report data
-            Mapping_GetAsFeatureReport(mapFeatureBuf);
+            memset(mapFeatureBuf, 0, sizeof(mapFeatureBuf));  // Clear buffer
+            Mapping_GetAsFeatureReport(mapFeatureBuf);  // Fill with mapping data
             
             // Send the data back to the host through endpoint 0
-            USBEP0SendRAMPtr(mapFeatureBuf, sizeof(mapFeatureBuf), USB_EP0_INCLUDE_ZERO);
+            USBEP0SendRAMPtr(mapFeatureBuf, HID_MAP_EP_BUF_SIZE, USB_EP0_INCLUDE_ZERO);
         }
     }
 }

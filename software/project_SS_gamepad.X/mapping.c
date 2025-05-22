@@ -149,15 +149,15 @@ void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
  */
 void Mapping_GetAsFeatureReport(uint8_t* featureReport) {
     // Set Report ID as first byte
-    featureReport[0] = 0x01;  // Report ID 1
-    
+    featureReport[0] = 0x00;  // Report ID 0
+
     // Copy mapping table to feature report (starting at index 1)
     for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
         featureReport[i + 1] = map.tbl[i];
     }
     
     // Fill remaining bytes with zeros
-    for (uint8_t i = NUM_BUTTONS + 1; i < HID_MAP_RPT_SIZE; i++) {
+    for (uint8_t i = NUM_BUTTONS + 1; i < HID_MAP_EP_BUF_SIZE; i++) {
         featureReport[i] = 0;
     }
 }

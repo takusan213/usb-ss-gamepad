@@ -82,8 +82,6 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
         gamepad_input->val[i] = 0;
     }
     
-    // ハットスイッチはデフォルトでNULL(8)に設定
-    gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
     
     // D-Padの状態を取得（全ての処理で使えるように上部で定義）
     bool up = BUTTON_IsPressed(BUTTON_UP);
@@ -109,27 +107,27 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
         // D-PadをHATスイッチとして処理 (上で定義した変数を使用)
         
         // HATスイッチとして処理 - MODE 0の場合のみ
-        if (flags.crosskey_flag == 0) {
-            if(up && left) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
-            } else if(up && right) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
-            } else if(down && left) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
-            } else if(down && right) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
-            } else if(up) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
-            } else if(right) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
-            } else if(down) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
-            } else if(left) {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
-            } else {
-                gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
-            }
-        }
+        // if (flags.crosskey_flag == 0) {
+        //     if(up && left) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
+        //     } else if(up && right) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
+        //     } else if(down && left) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
+        //     } else if(down && right) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
+        //     } else if(up) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
+        //     } else if(right) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
+        //     } else if(down) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
+        //     } else if(left) {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
+        //     } else {
+        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
+        //     }
+        // }
 
     } else if(flags.sw_flag == true) {
         // 代替モード - 直接紐づけに変更
@@ -145,60 +143,47 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
         gamepad_input->members.buttons.home = BUTTON_IsPressed(BUTTON_Z);
     }
 
-
-    // アナログスティック処理
-    // いつでも中央値を設定
-    gamepad_input->members.analog_stick.X = 128;  // デフォルト中央
-    gamepad_input->members.analog_stick.Y = 128;  // デフォルト中央
-    
-    // MODE 1の場合のみアナログ入力を有効化
-    if (flags.crosskey_flag == 1) {
-        // X軸 (左右)
-        if(left){
-            gamepad_input->members.analog_stick.X = 0;   // 左
-        }else if(right){
-            gamepad_input->members.analog_stick.X = 255; // 右
-        }
-        
-        // Y軸 (上下)
-        if(up){
-            gamepad_input->members.analog_stick.Y = 0;   // 上
-        }else if(down){
-            gamepad_input->members.analog_stick.Y = 255; // 下
-        }
-    }
-    
-    // 他のアナログ値を標準の128に設定
-    gamepad_input->members.analog_stick.Z = 128;
-    gamepad_input->members.analog_stick.Rz = 128;
-    
-    // // HATスイッチの初期化は、クロスキー処理なしの場合にのみ必要
-    // 上記でD-padをHATスイッチとして処理した場合は、ここで初期化しない
-    
     // 特別な組み合わせボタン - 例：START+L同時押しでHOMEボタン
     if (flags.sw_flag == false && BUTTON_IsPressed(BUTTON_START) && BUTTON_IsPressed(BUTTON_TL)) {
         SetHIDButtonField(gamepad_input, Mapping_GetUsage(12), true);
     }
 
-    // Z軸とRz軸の初期化
-    // report_idフィールドが削除されたのでインデックスを修正
+
+    // アナログスティック処理
+    // ハットスイッチはデフォルトでNULL(8)に設定
+    gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
+
+    // X/XY 初期化
+    gamepad_input->members.analog_stick.X = 0x80;  // デフォルト中央
+    gamepad_input->members.analog_stick.Y = 0x80;  // デフォルト中央
+
+    // Z/Rz 初期化
     gamepad_input->members.analog_stick.Z = 0x80;   // 中央位置 (128)
     gamepad_input->members.analog_stick.Rz = 0x80;  // 中央位置 (128)
 
 
     // クロスキーモード処理
     switch(flags.crosskey_flag) {
-        // モード0: HATスイッチのみ有効 (アナログは中立固定)
+        // モード0: アナログX/Y
         case 0:
-            // このモードではHATスイッチが既に上で設定済み
-            // アナログスティックは中立に設定済み
+            // X軸 (左右)
+            if(left){
+                gamepad_input->members.analog_stick.X = 0x00;   // 左
+            }else if(right){
+                gamepad_input->members.analog_stick.X = 0xFF; // 右
+            }
+            
+            // Y軸 (上下)
+            if(up){
+                gamepad_input->members.analog_stick.Y = 0x00;   // 上
+            }else if(down){
+                gamepad_input->members.analog_stick.Y = 0xFF; // 下
+            }
             break;
             
         // モード1: HATスイッチ+アナログXY (両方有効)
         case 1:
-            // アナログ値は上で設定済み
-            
-            // HATスイッチも設定 (同じ値をマニュアルでセット)
+            // HATスイッチ設定
             if(up && left) {
                 gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
             } else if(up && right) {
@@ -222,21 +207,16 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
             
         // モード2: 何も反応しない
         case 2:
-            // 既にHATスイッチはNULLに設定済み
             // アナログスティックは中立に設定済み
+            gamepad_input->members.analog_stick.Z = left ? 0 : (right ? 255 : 128);
+            gamepad_input->members.analog_stick.Rz = up ? 0 : (down ? 255 : 128);
+    
             break;
             
         // 不明なモード: モード0と同じ
         default:
             // ここには何も記述しない - 全てのモード処理は上のクロスキーモード処理で完了
             break;
-    }
-    
-    // クロスキーモードが2(Z/RZモード)の場合のみ特別処理
-    if (flags.crosskey_flag == 2) {
-        // アナログスティックのX/Y値をZ/RZにコピーし、X/Yは中立に設定
-        gamepad_input->members.analog_stick.Z = left ? 0 : (right ? 255 : 128);
-        gamepad_input->members.analog_stick.Rz = up ? 0 : (down ? 255 : 128);
     }
     
     return;

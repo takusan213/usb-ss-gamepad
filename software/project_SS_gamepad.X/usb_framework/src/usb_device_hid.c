@@ -208,7 +208,7 @@ void USBCheckHIDRequest(void)
                         // Interface 1 - Mapping Feature report descriptor
                         USBEP0SendROMPtr(
                             (const uint8_t*)&hid_map_rpt,
-                            HID_MAP_RPT_SIZE,     //See usbcfg.h
+                            HID_MAP_RPT_DESC_SIZE,     //See usbcfg.h (ディスクリプタサイズ指定用途)
                             USB_EP0_INCLUDE_ZERO);
                     }
                 }
