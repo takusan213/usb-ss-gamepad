@@ -11,7 +11,7 @@ const struct{uint8_t report[HID_MAP_RPT_DESC_SIZE];}hid_map_rpt={{
   0x15,0x00,                 //   Logical Minimum (0)
   0x26,0xFF,0x00,           //   Logical Maximum (255)
   0x75,0x08,                 //   Report Size (8)
-  0x95,0x14,                 //   Report Count (20) - for 21 bytes total including Report ID
+  0x95,0x40,                 //   Report Count (64) - for 64 bytes total including Report ID
   0x09,0x01,                 //   Usage (Vendor Usage 1)
   0xB1,0x02,                 //   Feature (Data, Variable, Absolute)
   0xC0                       //   End Collection

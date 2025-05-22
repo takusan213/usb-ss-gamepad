@@ -17,7 +17,7 @@ static struct {
     uint8_t ver;               // Version for compatibility checking
     uint8_t tbl[NUM_BUTTONS];  // Button-to-usage mapping table
     uint8_t crc;               // CRC8 checksum for data integrity
-} map __at(0x200);             // Place at fixed address in RAM
+} map ;            
 
 #define MAP_VER 0x01           // Current data structure version
 #define HEF_ADDR 0x1F80        // High-Endurance Flash starting address (row0)
