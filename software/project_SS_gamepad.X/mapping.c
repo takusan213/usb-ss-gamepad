@@ -22,6 +22,9 @@ static struct {
 #define MAP_VER 0x01           // Current data structure version
 #define HEF_ADDR 0x1F80        // High-Endurance Flash starting address (row0)
 
+#define ROW_SIZE   64                   // Size of a row in High-Endurance Flash
+static uint8_t rowBuf[ROW_SIZE];
+
 /**
  * Calculate CRC8 checksum (0x07 polynomial)
  * @param d Pointer to data
@@ -89,12 +92,16 @@ void Mapping_Save(const uint8_t *tbl) {
     map.ver = MAP_VER;
     map.crc = crc8((uint8_t*)&map, sizeof(map) - 1);
     
+    /* 行バッファを 0xFF で埋めてから map を先頭にコピー */
+    memset(rowBuf, 0xFF, sizeof(rowBuf));
+    memcpy(rowBuf, &map, sizeof(map));
+
     // Save to flash via FLASH_RowWrite
     {
         uint8_t gie = INTCONbits.GIE;
         INTCONbits.GIE = 0;
         NVM_UnlockKeySet(UNLOCK_KEY);
-        FLASH_RowWrite(HEF_ADDR, (flash_data_t*)&map);
+        FLASH_RowWrite(HEF_ADDR, (flash_data_t*)&rowBuf);
         NVM_UnlockKeyClear();
         INTCONbits.GIE = gie;
     }
