@@ -11,6 +11,12 @@ Mapping functionality for button-to-usage configuration
 
 #define NUM_BUTTONS 14
 
+
+/**
+ * convert mapping data structure to row buffer for flash write
+ */
+void map_to_rowbuf(void);
+
 /**
  * Load mapping from High-Endurance Flash to RAM
  */

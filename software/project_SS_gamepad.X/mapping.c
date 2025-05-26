@@ -22,8 +22,8 @@ static struct {
 #define MAP_VER 0x01           // Current data structure version
 #define HEF_ADDR 0x1F80        // High-Endurance Flash starting address (row0)
 
-#define ROW_SIZE   64                   // Size of a row in High-Endurance Flash
-static uint8_t rowBuf[ROW_SIZE];
+#define ROW_WORDS   32                  // 64B / 2B
+static flash_data_t rowBuf[ROW_WORDS];  // uint16_t[32]
 
 /**
  * Calculate CRC8 checksum (0x07 polynomial)
@@ -42,6 +42,22 @@ static uint8_t crc8(const uint8_t *d, uint8_t l) {
     return c;
 }
 
+void map_to_rowbuf(void)
+{
+    /* 0xFFFF で初期化（未使用上位バイトは 0x3F 推奨でも OK） */
+    for (uint8_t w = 0; w < ROW_WORDS; w++) rowBuf[w] = 0xFFFF;
+
+    /* map 構造体を 8-bit→16-bit にパック */
+    const uint8_t *src = (const uint8_t *)&map;
+    for (uint8_t b = 0; b < sizeof(map); b++) {
+        uint8_t w = b >> 1;
+        if (b & 1)
+            rowBuf[w] = (rowBuf[w] & 0x00FFu) | (src[b] << 8);     // 上位バイト
+        else
+            rowBuf[w] = (rowBuf[w] & 0xFF00u) |  src[b];           // 下位バイト
+    }
+}
+
 /**
  * Load mapping from High-Endurance Flash to RAM
  * If invalid data detected, initialize with default mapping
@@ -50,8 +66,12 @@ void Mapping_Load(void) {
     // Read mapping data from flash to RAM via FLASH_Read
     {
         uint8_t *pdata = (uint8_t*)&map;
-        for(uint16_t i = 0; i < sizeof(map); i++) {
-            pdata[i] = (uint8_t)FLASH_Read(HEF_ADDR + i);
+        // Read 16-bit words from flash, convert to 8-bit bytes
+        // Each word contains 2 bytes of mapping data
+        for (uint8_t w = 0; w < (sizeof(map)+1)/2; w++){          // 1ワードずつ読む
+            flash_data_t word = FLASH_Read(HEF_ADDR + w);        // ワードアドレス
+            pdata[w*2]     =  word & 0xFF;                         // 下位
+            pdata[w*2 + 1] = (word >> 8) & 0xFF;                   // 上位
         }
     }
      
@@ -92,19 +112,19 @@ void Mapping_Save(const uint8_t *tbl) {
     map.ver = MAP_VER;
     map.crc = crc8((uint8_t*)&map, sizeof(map) - 1);
     
-    /* 行バッファを 0xFF で埋めてから map を先頭にコピー */
-    memset(rowBuf, 0xFF, sizeof(rowBuf));
-    memcpy(rowBuf, &map, sizeof(map));
+    // Convert map structure to row buffer for flash write
+    map_to_rowbuf();
 
     // Save to flash via FLASH_RowWrite
-    {
-        uint8_t gie = INTCONbits.GIE;
-        INTCONbits.GIE = 0;
-        NVM_UnlockKeySet(UNLOCK_KEY);
-        FLASH_RowWrite(HEF_ADDR, (flash_data_t*)&rowBuf);
-        NVM_UnlockKeyClear();
-        INTCONbits.GIE = gie;
-    }
+    uint8_t gie = INTCONbits.GIE;
+    INTCONbits.GIE = 0;
+    NVM_UnlockKeySet(UNLOCK_KEY);
+    FLASH_PageErase(HEF_ADDR);  // Erase the page before writing
+    while(NVM_IsBusy());  // Wait for erase to complete
+    FLASH_RowWrite(HEF_ADDR, rowBuf);    // Write the row buffer to flash
+    while(NVM_IsBusy());     
+    NVM_UnlockKeyClear();
+    INTCONbits.GIE = gie;
 }
 
 /**
@@ -124,13 +144,13 @@ uint8_t Mapping_GetUsage(uint8_t physBtn) {
 void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
     // Report ID may or may not be in the buffer depending on the implementation
     // For safety, assume data starts at index 0
-    uint8_t dataOffset = 0;
+    uint8_t dataOffset = 1;
     
-    // Check if the first byte is Report ID 1
-    if (length > 0 && featureReport[0] == 0x01) {
-        // Skip Report ID byte
-        dataOffset = 1;
-    }
+    // // Check if the first byte is Report ID 1
+    // if (length > 0 && featureReport[0] == 0x01) {
+    //     // Skip Report ID byte
+    //     dataOffset = 1;
+    // }
     
     // Determine how many mapping bytes we can copy
     uint8_t maxBytes = (length - dataOffset > NUM_BUTTONS) ? NUM_BUTTONS : length - dataOffset;

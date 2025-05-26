@@ -124,7 +124,14 @@ bool USER_USB_CALLBACK_EVENT_HANDLER(USB_EVENT event, void *pdata, uint16_t size
 // Feature report buffers for two interfaces
 static uint8_t featureBuf[64];            // Interface 0 受信用バッファ
 static uint8_t mapFeatureBuf[64];         // Interface 1 mapping feature buffer
-static USB_HANDLE featureRxHandle = 0;    // ハンドルはグローバルで共有
+
+/* ---------- ② 64B受信し終わったとき自動で呼ばれる ---------- */
+void USBCB_HIDSetReportComplete(void)
+{
+    // Process the mapping data immediately after receiving
+    Mapping_SetFromFeatureReport(mapFeatureBuf, sizeof(mapFeatureBuf));
+
+}
 
 /* ---------- SET_REPORT handler for both interfaces ---------- */
 void HIDFeatureReceive(void)
@@ -132,36 +139,14 @@ void HIDFeatureReceive(void)
     uint8_t reportID = SetupPkt.W_Value.byte.LB;  // Report ID is in the low byte of wValue
     uint8_t interfaceNum = SetupPkt.W_Index.byte.LB;  // Interface number is in the low byte of wIndex
     
-    // デバッグメッセージを表示（実際のコードでは削除可能）
-    // printf("HIDFeatureReceive: Interface=%d, ReportID=0x%02X, Request=0x%02X\n", 
-    //       interfaceNum, reportID, SetupPkt.bRequest);
-    
-    // Handle Interface 0 (Gamepad interface)
-    // if (interfaceNum == 0) {
-    //     // Gamepad interface GET_REPORT handling
-    //     if (SetupPkt.bRequest == GET_REPORT) {
-    //         // Send empty or default report - gamepad doesn't support GET_REPORT
-    //         // または、ステータスパケットを送信して処理を完了させる
-    //         USBStallEndpoint(0, 0);  // STALL for unsupported requests
-    //     }
-    //     // Gamepad interface SET_REPORT handling (if needed)
-    //     else if (SetupPkt.bRequest == SET_REPORT) {
-    //         /* まだ転送中なら何もしない */
-    //         if(HIDRxHandleBusy(featureRxHandle)) return;
-
-    //         /* EP番号は JOYSTICK_EP で OK。64B 受信を予約 */
-    //         featureRxHandle = HIDRxPacket(JOYSTICK_EP, featureBuf, sizeof(featureBuf));
-    //     }
-    // }
-    // Handle Interface 1 (Mapping interface)
     if (interfaceNum == 1) {
         // Check if this is SET_REPORT (from host to device)
         if (SetupPkt.bRequest == SET_REPORT) {
             // SET_REPORT - receive data from host via control transfer
-            USBEP0Receive(mapFeatureBuf, HID_MAP_EP_BUF_SIZE, NULL);
+            USBEP0Receive(mapFeatureBuf, HID_MAP_EP_BUF_SIZE, USBCB_HIDSetReportComplete);
 
             // Process the mapping data immediately after receiving
-            Mapping_SetFromFeatureReport(mapFeatureBuf, sizeof(mapFeatureBuf));
+            // Mapping_SetFromFeatureReport(mapFeatureBuf, sizeof(mapFeatureBuf));
         } 
         else if (SetupPkt.bRequest == GET_REPORT) {
             // GET_REPORT - send data to host
@@ -175,22 +160,7 @@ void HIDFeatureReceive(void)
     }
 }
 
-/* ---------- ② 64B受信し終わったとき自動で呼ばれる ---------- */
-void USBCB_HIDSetReportComplete(void)
-{
-    /* 受信済みか確認してバッファを取り出す */
-    if(!HIDRxHandleBusy(featureRxHandle))
-    {
-        /* Report ID チェック */
-        if(featureBuf[0] == 0x02)
-        {
-            Mapping_Save(&featureBuf[1]);     // 先頭14Bを保存
-        }
 
-        /* 次のSET_REPORTに備えてハンドルを無効化 */
-        featureRxHandle = 0;
-    }
-}
 
 /*******************************************************************************
 End of File
