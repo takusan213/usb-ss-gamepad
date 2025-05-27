@@ -44,17 +44,12 @@ static uint8_t crc8(const uint8_t *d, uint8_t l) {
 
 void map_to_rowbuf(void)
 {
-    /* 0xFFFF で初期化（未使用上位バイトは 0x3F 推奨でも OK） */
-    for (uint8_t w = 0; w < ROW_WORDS; w++) rowBuf[w] = 0xFFFF;
+    /* 0x3FFF で初期化（未使用上位バイトは 0x3F） */
+    for (uint8_t i = 0; i < ROW_WORDS; i++) rowBuf[i] = 0x3FFF;
 
-    /* map 構造体を 8-bit→16-bit にパック */
-    const uint8_t *src = (const uint8_t *)&map;
+    /* uint8_t map 構造体をuint16_t rowBufにコピー */
     for (uint8_t b = 0; b < sizeof(map); b++) {
-        uint8_t w = b >> 1;
-        if (b & 1)
-            rowBuf[w] = (rowBuf[w] & 0x00FFu) | (src[b] << 8);     // 上位バイト
-        else
-            rowBuf[w] = (rowBuf[w] & 0xFF00u) |  src[b];           // 下位バイト
+        rowBuf[b] = 0x3F00 | ((uint8_t*) &map)[b]; 
     }
 }
 
@@ -64,17 +59,12 @@ void map_to_rowbuf(void)
  */
 void Mapping_Load(void) {
     // Read mapping data from flash to RAM via FLASH_Read
-    {
-        uint8_t *pdata = (uint8_t*)&map;
-        // Read 16-bit words from flash, convert to 8-bit bytes
-        // Each word contains 2 bytes of mapping data
-        for (uint8_t w = 0; w < (sizeof(map)+1)/2; w++){          // 1ワードずつ読む
-            flash_data_t word = FLASH_Read(HEF_ADDR + w);        // ワードアドレス
-            pdata[w*2]     =  word & 0xFF;                         // 下位
-            pdata[w*2 + 1] = (word >> 8) & 0xFF;                   // 上位
-        }
+    for(uint8_t i = 0; i < sizeof(map); i ++){
+        // Read 14-bit words from flash and convert to 8-bit
+        flash_data_t data = FLASH_Read(HEF_ADDR + i);
+        ((uint8_t*)&map)[i] = (uint8_t)(data & 0x00FF); // Use lower byte
     }
-     
+    
     // Validate data (version and CRC)
     if (map.ver != MAP_VER || map.crc != crc8((uint8_t*)&map, sizeof(map) - 1)) {
         // Invalid data, initialize with standardized default mapping
@@ -168,6 +158,8 @@ void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
     
     // Save the new mapping to flash
     Mapping_Save(newMapping);
+
+    Mapping_Load(); //for debugging, reload mapping after saving
 }
 
 /**
