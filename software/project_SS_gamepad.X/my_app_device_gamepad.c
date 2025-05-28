@@ -36,6 +36,78 @@ typedef struct _Flags{
 
 Flags flags;
 
+/* ----------------------------------------------------------------------------
+   mapping.h などで定義済み
+   NUM_BUTTONS = 14
+   BUTTON_* 列挙体は 0..13 の物理ボタン番号に対応している想定
+---------------------------------------------------------------------------- */
+
+/* ────────────────────────────────────────────────────────────────────────────
+   usageByte[usage]: 
+     usage (1–14) が INPUT_CONTROLS.val[] の何バイト目に対応するか
+   ──────────────────────────────────────────────────────────────────────────── */
+static const uint8_t usageByte[15] = {
+    /*  0: 未使用 (無効) */  0,
+    /*  1: A            */  0,    // val[0].bit0
+    /*  2: B            */  0,    // val[0].bit1
+    /*  3: C            */  0,    // val[0].bit2
+    /*  4: X            */  0,    // val[0].bit3
+    /*  5: Y            */  0,    // val[0].bit4
+    /*  6: Z            */  0,    // val[0].bit5
+    /*  7: L1           */  0,    // val[0].bit6
+    /*  8: R1           */  0,    // val[0].bit7
+    /*  9: Start        */  1,    // val[1].bit0
+    /* 10: L2           */  1,    // val[1].bit1
+    /* 11: R2           */  1,    // val[1].bit2
+    /* 12: Home         */  1,    // val[1].bit3
+    /* 13: Right Stick  */  1,    // val[1].bit4
+    /* 14: Left Stick   */  1     // val[1].bit5
+};
+
+/* ────────────────────────────────────────────────────────────────────────────
+   usageMask[usage]:
+     各 usage (1–14) がそのバイト内で何ビット目かを表すマスク
+   ──────────────────────────────────────────────────────────────────────────── */
+static const uint8_t usageMask[15] = {
+    /*  0: 無効      */  0x00,
+    /*  1: A         */  1 << 0,  // val[0] bit0 → a
+    /*  2: B         */  1 << 1,  // val[0] bit1 → b
+    /*  3: C         */  1 << 2,  // val[0] bit2 → c
+    /*  4: X         */  1 << 3,  // val[0] bit3 → x
+    /*  5: Y         */  1 << 4,  // val[0] bit4 → y
+    /*  6: Z         */  1 << 5,  // val[0] bit5 → z
+    /*  7: L1        */  1 << 6,  // val[0] bit6 → L1
+    /*  8: R1        */  1 << 7,  // val[0] bit7 → R1
+    /*  9: Start     */  1 << 0,  // val[1] bit0 → start
+    /* 10: L2        */  1 << 1,  // val[1] bit1 → L2
+    /* 11: R2        */  1 << 2,  // val[1] bit2 → R2
+    /* 12: Home      */  1 << 3,  // val[1] bit3 → home
+    /* 13: RightStick*/  1 << 4,  // val[1] bit4 → right_stick
+    /* 14: LeftStick */  1 << 5   // val[1] bit5 → left_stick
+};
+
+/* 物理 idx をハードボタンに変換して押下を調べる関数 */
+static bool isPhysPressed(uint8_t phys)
+{
+    switch(phys){
+        case 0:  return BUTTON_IsPressed(BUTTON_A);
+        case 1:  return BUTTON_IsPressed(BUTTON_B);
+        case 2:  return BUTTON_IsPressed(BUTTON_C);
+        case 3:  return BUTTON_IsPressed(BUTTON_X);
+        case 4:  return BUTTON_IsPressed(BUTTON_Y);
+        case 5:  return BUTTON_IsPressed(BUTTON_Z);
+        case 6:  return BUTTON_IsPressed(BUTTON_TL);   // L1
+        case 7:  return BUTTON_IsPressed(BUTTON_TR);   // R1
+        case 8:  return BUTTON_IsPressed(BUTTON_START);
+        case 9:  return false;   // no physical button for this index
+        case 10: return false;   // no physical button for this index
+        case 11: return false;   // no physical button for this index
+        case 12: return false;   // no physical button for this index
+        case 13: return false;   // no physical button for this index
+        default: return false;   // no physical button for this index
+    }
+}
+
 // The HIDFeatureReceive function has been moved to usb_events.c
 // to handle both Interface 0 and Interface 1 Feature reports
 
@@ -44,43 +116,13 @@ void App_DeviceGamepadInit(void){
     flags.sw_flag = false;
 }
 
-/**
- * Helper function to set button field based on usage
- * @param gamepad_input Pointer to the joystick report
- * @param usage HID usage value (1-14)
- * @param pressed Whether the button is pressed
- */
-// 注意: この関数は現在使用されていませんが、マッピング機能のために残しています
-static void SetHIDButtonField(INPUT_CONTROLS* gamepad_input, uint8_t usage, bool pressed) {
-    // Button bits are stored in bitfields, so we have to set each one individually based on usage
-    switch(usage) {
-        case 1: gamepad_input->members.buttons.a = pressed; break;
-        case 2: gamepad_input->members.buttons.b = pressed; break;
-        case 3: gamepad_input->members.buttons.c = pressed; break;
-        case 4: gamepad_input->members.buttons.x = pressed; break;
-        case 5: gamepad_input->members.buttons.y = pressed; break;
-        case 6: gamepad_input->members.buttons.z = pressed; break;
-        case 7: gamepad_input->members.buttons.L1 = pressed; break;
-        case 8: gamepad_input->members.buttons.R1 = pressed; break;
-        case 9: gamepad_input->members.buttons.start = pressed; break;
-        case 10: gamepad_input->members.buttons.L2 = pressed; break;
-        case 11: gamepad_input->members.buttons.R2 = pressed; break;
-        case 12: gamepad_input->members.buttons.home = pressed; break;
-        case 13: gamepad_input->members.buttons.right_stick = pressed; break;
-        case 14: gamepad_input->members.buttons.left_stick = pressed; break;
-        default: break; // Invalid usage
-    }
-}
 
 void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
 
     // No Report ID in Interface 0
     
     // Clear all button fields and data by zeroing all bytes
-    // 完全にメモリをクリアする
-    for (int i = 0; i < sizeof(INPUT_CONTROLS); i++) {
-        gamepad_input->val[i] = 0;
-    }
+    memset(gamepad_input->val, 0, sizeof(gamepad_input->val));
     
     
     // D-Padの状態を取得（全ての処理で使えるように上部で定義）
@@ -89,64 +131,22 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
     bool left = BUTTON_IsPressed(BUTTON_LEFT);
     bool right = BUTTON_IsPressed(BUTTON_RIGHT);
 
-    // Directly set start button (not using mapping)
-    // START ボタンだけは特別扱い - 常にそのまま使う
-    gamepad_input->members.buttons.start = BUTTON_IsPressed(BUTTON_START);        
+    for (uint8_t phys = 0; phys < NUM_BUTTONS; phys++){
+        if(!isPhysPressed(phys)) continue;          // 押されていなければスキップ
 
-    if(flags.sw_flag == false) {
-        // 直接紐づけに変更する - マッピング機能を回避して直接設定
-        gamepad_input->members.buttons.a = BUTTON_IsPressed(BUTTON_A);
-        gamepad_input->members.buttons.b = BUTTON_IsPressed(BUTTON_B);
-        gamepad_input->members.buttons.c = BUTTON_IsPressed(BUTTON_C);
-        gamepad_input->members.buttons.x = BUTTON_IsPressed(BUTTON_X);
-        gamepad_input->members.buttons.y = BUTTON_IsPressed(BUTTON_Y);
-        gamepad_input->members.buttons.z = BUTTON_IsPressed(BUTTON_Z);
-        gamepad_input->members.buttons.L1 = BUTTON_IsPressed(BUTTON_TL);
-        gamepad_input->members.buttons.R1 = BUTTON_IsPressed(BUTTON_TR);
+        uint8_t usage = Mapping_GetUsage(phys);        // 1〜14, 0=未割当
+        if(!usage || usage > 14) continue;             // 無効は無視
 
-        // D-PadをHATスイッチとして処理 (上で定義した変数を使用)
-        
-        // HATスイッチとして処理 - MODE 0の場合のみ
-        // if (flags.crosskey_flag == 0) {
-        //     if(up && left) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_WEST;
-        //     } else if(up && right) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH_EAST;
-        //     } else if(down && left) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_WEST;
-        //     } else if(down && right) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH_EAST;
-        //     } else if(up) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NORTH;
-        //     } else if(right) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_EAST;
-        //     } else if(down) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_SOUTH;
-        //     } else if(left) {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_WEST;
-        //     } else {
-        //         gamepad_input->members.hat_switch.hat_switch = HAT_SWITCH_NULL;
-        //     }
-        // }
-
-    } else if(flags.sw_flag == true) {
-        // 代替モード - 直接紐づけに変更
-        // 下位互換性のために基本ボタンを維持
-        gamepad_input->members.buttons.a = BUTTON_IsPressed(BUTTON_A);
-        gamepad_input->members.buttons.b = BUTTON_IsPressed(BUTTON_B);
-        gamepad_input->members.buttons.c = BUTTON_IsPressed(BUTTON_C);
-        // 特殊ボタンの直接マッピング
-        gamepad_input->members.buttons.L2 = BUTTON_IsPressed(BUTTON_TL);
-        gamepad_input->members.buttons.R2 = BUTTON_IsPressed(BUTTON_TR);
-        gamepad_input->members.buttons.left_stick = BUTTON_IsPressed(BUTTON_Y);
-        gamepad_input->members.buttons.right_stick = BUTTON_IsPressed(BUTTON_X);
-        gamepad_input->members.buttons.home = BUTTON_IsPressed(BUTTON_Z);
+        uint8_t idx  = usageByte[usage];               // val のバイト番号
+        uint8_t mask = usageMask[usage];               // 立てるビット
+        gamepad_input->val[idx] |= mask;               // ワンショットでセット
     }
 
-    // 特別な組み合わせボタン - 例：START+L同時押しでHOMEボタン
-    if (flags.sw_flag == false && BUTTON_IsPressed(BUTTON_START) && BUTTON_IsPressed(BUTTON_TL)) {
-        SetHIDButtonField(gamepad_input, Mapping_GetUsage(12), true);
-    }
+
+    // // 特別な組み合わせボタン - 例：START+L同時押しでHOMEボタン
+    // if (flags.sw_flag == false && BUTTON_IsPressed(BUTTON_START) && BUTTON_IsPressed(BUTTON_TL)) {
+    //     gamepad_input->val[usageByte[12]] |= usageMask[12];
+    // }
 
 
     // アナログスティック処理

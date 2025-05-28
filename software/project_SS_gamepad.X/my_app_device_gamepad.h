@@ -22,7 +22,6 @@ limitations under the License.
 #ifndef MY_APP_DEVICE_GAMEPAD_H
 #define	MY_APP_DEVICE_GAMEPAD_H
 
-
 #include "app_device_joystick.h"
 
 void App_DeviceGamepadInit(void);

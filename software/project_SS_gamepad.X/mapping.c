@@ -79,14 +79,17 @@ void Mapping_Load(void) {
         // Shoulder buttons are 7,8
         map.tbl[6] = 7;  // L1 -> Button 7
         map.tbl[7] = 8;  // R1 -> Button 8
+        // Start button is 9
+        map.tbl[8] = 9;  // Select/spare -> Button 9
         // L2, R2, Left stick, Right stick, Home
-        map.tbl[8] = 10;  // L2 -> Button 10
-        map.tbl[9] = 11;  // R2 -> Button 11
-        map.tbl[10] = 14; // Left stick -> Button 14
-        map.tbl[11] = 13; // Right stick -> Button 13
-        map.tbl[12] = 12; // Home -> Button 12
-        // The last button could be spare/select
-        map.tbl[13] = 9;  // Select/spare -> Button 9
+        map.tbl[9] = 10;  // L2 -> Button 10
+        map.tbl[10] = 11;  // R2 -> Button 11
+        map.tbl[11] = 14; // Left stick -> Button 14
+        map.tbl[12] = 13; // Right stick -> Button 13
+        map.tbl[13] = 12; // Home -> Button 12
+
+        map.ver = MAP_VER;  // Set version
+        map.crc = crc8((uint8_t*)&map, sizeof(map) - 1); // Calculate CRC
     }
 }
 
@@ -159,7 +162,7 @@ void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
     // Save the new mapping to flash
     Mapping_Save(newMapping);
 
-    Mapping_Load(); //for debugging, reload mapping after saving
+    // Mapping_Load(); //for debugging, reload mapping after saving
 }
 
 /**

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "my_app_device_gamepad.h": "c",
+        "app_device_joystick.h": "c"
+    }
+}
