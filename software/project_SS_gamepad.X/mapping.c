@@ -14,9 +14,21 @@ Mapping functionality for button-to-usage configuration
 
 /* RAM working copy of the mapping data */
 static struct {
-    uint8_t ver;               // Version for compatibility checking
-    uint8_t tbl[NUM_BUTTONS];  // Button-to-usage mapping table
-    uint8_t crc;               // CRC8 checksum for data integrity
+    // Bytes 0-7: Global settings
+    uint8_t ver;                      // Version for compatibility checking
+    uint8_t crc;                      // CRC8 checksum for data integrity
+    uint8_t global_reserved[6];       // Reserved for future global settings
+    
+    // Bytes 8-23: Normal mode mapping (16 bytes)
+    uint8_t normal_tbl[NUM_BUTTONS];  // Normal mode button-to-usage mapping table (9 bytes)
+    uint8_t normal_reserved[7];       // Reserved for normal mode expansion
+    
+    // Bytes 24-39: Special mode mapping (16 bytes)
+    uint8_t special_tbl[NUM_BUTTONS]; // Special mode button-to-usage mapping table (9 bytes)
+    uint8_t special_reserved[7];      // Reserved for special mode expansion
+    
+    // Bytes 40-63: Future expansion (24 bytes)
+    uint8_t future_reserved[24];      // Reserved for future features
 } map ;            
 
 #define MAP_VER 0x01           // Current data structure version
@@ -68,25 +80,34 @@ void Mapping_Load(void) {
     // Validate data (version and CRC)
     if (map.ver != MAP_VER || map.crc != crc8((uint8_t*)&map, sizeof(map) - 1)) {
         // Invalid data, initialize with standardized default mapping
-        // A, B, C buttons are 1,2,3
-        map.tbl[0] = 1;  // A -> Button 1
-        map.tbl[1] = 2;  // B -> Button 2
-        map.tbl[2] = 3;  // C -> Button 3
-        // X, Y, Z buttons are 4,5,6
-        map.tbl[3] = 4;  // X -> Button 4
-        map.tbl[4] = 5;  // Y -> Button 5
-        map.tbl[5] = 6;  // Z -> Button 6
-        // Shoulder buttons are 7,8
-        map.tbl[6] = 7;  // L1 -> Button 7
-        map.tbl[7] = 8;  // R1 -> Button 8
-        // Start button is 9
-        map.tbl[8] = 9;  // Select/spare -> Button 9
-        // L2, R2, Left stick, Right stick, Home
-        map.tbl[9] = 10;  // L2 -> Button 10
-        map.tbl[10] = 11;  // R2 -> Button 11
-        map.tbl[11] = 14; // Left stick -> Button 14
-        map.tbl[12] = 13; // Right stick -> Button 13
-        map.tbl[13] = 12; // Home -> Button 12
+        
+        // Normal mode mapping (A=1, B=2, ..., Start=9)
+        map.normal_tbl[0] = 1;  // A -> Button 1
+        map.normal_tbl[1] = 2;  // B -> Button 2
+        map.normal_tbl[2] = 3;  // C -> Button 3
+        map.normal_tbl[3] = 4;  // X -> Button 4
+        map.normal_tbl[4] = 5;  // Y -> Button 5
+        map.normal_tbl[5] = 6;  // Z -> Button 6
+        map.normal_tbl[6] = 7;  // L -> Button 7
+        map.normal_tbl[7] = 8;  // R -> Button 8
+        map.normal_tbl[8] = 9;  // Start -> Button 9
+        
+        // Special mode mapping (same as normal initially)
+        map.special_tbl[0] = 1;  // A -> Button 1
+        map.special_tbl[1] = 2;  // B -> Button 2
+        map.special_tbl[2] = 3;  // C -> Button 3
+        map.special_tbl[3] = 13;  // X -> Button 13
+        map.special_tbl[4] = 14;  // Y -> Button 14
+        map.special_tbl[5] = 12;  // Z -> Button 12
+        map.special_tbl[6] = 10;  // L -> Button 10
+        map.special_tbl[7] = 11;  // R -> Button 11
+        map.special_tbl[8] = 9;  // Start -> Button 9
+        
+        // Clear all reserved areas
+        memset(map.global_reserved, 0, sizeof(map.global_reserved));
+        memset(map.normal_reserved, 0, sizeof(map.normal_reserved));
+        memset(map.special_reserved, 0, sizeof(map.special_reserved));
+        memset(map.future_reserved, 0, sizeof(map.future_reserved));
 
         map.ver = MAP_VER;  // Set version
         map.crc = crc8((uint8_t*)&map, sizeof(map) - 1); // Calculate CRC
@@ -95,11 +116,13 @@ void Mapping_Load(void) {
 
 /**
  * Save mapping from RAM to High-Endurance Flash
- * @param tbl Pointer to button-to-usage mapping table
+ * @param normal_tbl Pointer to normal mode button-to-usage mapping table
+ * @param special_tbl Pointer to special mode button-to-usage mapping table
  */
-void Mapping_Save(const uint8_t *tbl) {
-    // Copy new mapping table to RAM structure
-    memcpy(map.tbl, tbl, NUM_BUTTONS);
+void Mapping_Save(const uint8_t *normal_tbl, const uint8_t *special_tbl) {
+    // Copy new mapping tables to RAM structure
+    memcpy(map.normal_tbl, normal_tbl, NUM_BUTTONS);
+    memcpy(map.special_tbl, special_tbl, NUM_BUTTONS);
     
     // Update version and CRC
     map.ver = MAP_VER;
@@ -122,11 +145,16 @@ void Mapping_Save(const uint8_t *tbl) {
 
 /**
  * Get the usage value for a physical button
- * @param physBtn Physical button index
+ * @param physBtn Physical button index (0-8)
+ * @param mode Mode selection (0=normal, 1=special)
  * @return Usage value
  */
-uint8_t Mapping_GetUsage(uint8_t physBtn) {
-    return map.tbl[physBtn];
+uint8_t Mapping_GetUsage(uint8_t physBtn, uint8_t mode) {
+    if (mode == 0) {
+        return map.normal_tbl[physBtn];
+    } else {
+        return map.special_tbl[physBtn];
+    }
 }
 
 /**
@@ -135,34 +163,29 @@ uint8_t Mapping_GetUsage(uint8_t physBtn) {
  * @param length Length of the feature report data
  */
 void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
-    // Report ID may or may not be in the buffer depending on the implementation
-    // For safety, assume data starts at index 0
-    uint8_t dataOffset = 1;
+    // Feature report structure: [Report ID][8 bytes global][16 bytes normal][16 bytes special][24 bytes future]
+    uint8_t dataOffset = 1; // Skip Report ID
     
-    // // Check if the first byte is Report ID 1
-    // if (length > 0 && featureReport[0] == 0x01) {
-    //     // Skip Report ID byte
-    //     dataOffset = 1;
-    // }
-    
-    // Determine how many mapping bytes we can copy
-    uint8_t maxBytes = (length - dataOffset > NUM_BUTTONS) ? NUM_BUTTONS : length - dataOffset;
-    uint8_t newMapping[NUM_BUTTONS];
-    
-    // Copy data from feature report
-    for (uint8_t i = 0; i < maxBytes; i++) {
-        newMapping[i] = featureReport[i + dataOffset];
+    // Ensure we have enough data for complete structure
+    if (length < (dataOffset + 64)) {
+        return; // Not enough data
     }
     
-    // For any remaining buttons, use existing mapping
-    for (uint8_t i = maxBytes; i < NUM_BUTTONS; i++) {
-        newMapping[i] = map.tbl[i];
+    uint8_t newNormalMapping[NUM_BUTTONS];
+    uint8_t newSpecialMapping[NUM_BUTTONS];
+    
+    // Copy normal mode mapping (bytes 9-17 in feature report = bytes 8-16 in structure)
+    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+        newNormalMapping[i] = featureReport[dataOffset + 8 + i];
     }
     
-    // Save the new mapping to flash
-    Mapping_Save(newMapping);
-
-    // Mapping_Load(); //for debugging, reload mapping after saving
+    // Copy special mode mapping (bytes 25-33 in feature report = bytes 24-32 in structure)
+    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
+        newSpecialMapping[i] = featureReport[dataOffset + 24 + i];
+    }
+    
+    // Save both mapping tables to flash
+    Mapping_Save(newNormalMapping, newSpecialMapping);
 }
 
 /**
@@ -173,13 +196,9 @@ void Mapping_GetAsFeatureReport(uint8_t* featureReport) {
     // Set Report ID as first byte
     featureReport[0] = 0x00;  // Report ID 0
 
-    // Copy mapping table to feature report (starting at index 1)
-    for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        featureReport[i + 1] = map.tbl[i];
-    }
-    
-    // Fill remaining bytes with zeros
-    for (uint8_t i = NUM_BUTTONS + 1; i < HID_MAP_EP_BUF_SIZE; i++) {
-        featureReport[i] = 0;
+    // Copy entire structure to feature report (64 bytes)
+    // This includes global settings, normal mapping, special mapping, and reserved areas
+    for (uint8_t i = 0; i < sizeof(map); i++) {
+        featureReport[i + 1] = ((uint8_t*)&map)[i];
     }
 }

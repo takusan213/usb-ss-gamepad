@@ -9,7 +9,7 @@ Mapping functionality for button-to-usage configuration
 
 #include <stdint.h>
 
-#define NUM_BUTTONS 14
+#define NUM_BUTTONS 9
 
 
 /**
@@ -24,16 +24,18 @@ void Mapping_Load(void);
 
 /**
  * Save mapping from RAM to High-Endurance Flash
- * @param tbl Pointer to button-to-usage mapping table (at least NUM_BUTTONS bytes)
+ * @param normal_tbl Pointer to normal mode button-to-usage mapping table (at least NUM_BUTTONS bytes)
+ * @param special_tbl Pointer to special mode button-to-usage mapping table (at least NUM_BUTTONS bytes)
  */
-void Mapping_Save(const uint8_t *tbl);
+void Mapping_Save(const uint8_t *normal_tbl, const uint8_t *special_tbl);
 
 /**
  * Get the usage value for a physical button
- * @param physBtn Physical button index (0-13)
+ * @param physBtn Physical button index (0-8)
+ * @param mode Mode selection (0=normal, 1=special)
  * @return Usage value (1-14)
  */
-uint8_t Mapping_GetUsage(uint8_t physBtn);
+uint8_t Mapping_GetUsage(uint8_t physBtn, uint8_t mode);
 
 /**
  * Copy mapping data from Feature Report buffer to the mapping table

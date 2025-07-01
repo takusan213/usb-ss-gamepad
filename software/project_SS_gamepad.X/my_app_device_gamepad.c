@@ -96,14 +96,9 @@ static bool isPhysPressed(uint8_t phys)
         case 3:  return BUTTON_IsPressed(BUTTON_X);
         case 4:  return BUTTON_IsPressed(BUTTON_Y);
         case 5:  return BUTTON_IsPressed(BUTTON_Z);
-        case 6:  return BUTTON_IsPressed(BUTTON_TL);   // L1
-        case 7:  return BUTTON_IsPressed(BUTTON_TR);   // R1
+        case 6:  return BUTTON_IsPressed(BUTTON_TL);   // L
+        case 7:  return BUTTON_IsPressed(BUTTON_TR);   // R
         case 8:  return BUTTON_IsPressed(BUTTON_START);
-        case 9:  return false;   // no physical button for this index
-        case 10: return false;   // no physical button for this index
-        case 11: return false;   // no physical button for this index
-        case 12: return false;   // no physical button for this index
-        case 13: return false;   // no physical button for this index
         default: return false;   // no physical button for this index
     }
 }
@@ -134,7 +129,7 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
     for (uint8_t phys = 0; phys < NUM_BUTTONS; phys++){
         if(!isPhysPressed(phys)) continue;          // 押されていなければスキップ
 
-        uint8_t usage = Mapping_GetUsage(phys);        // 1〜14, 0=未割当
+        uint8_t usage = Mapping_GetUsage(phys, flags.sw_flag);  // sw_flagでモード選択
         if(!usage || usage > 14) continue;             // 無効は無視
 
         uint8_t idx  = usageByte[usage];               // val のバイト番号
@@ -143,10 +138,6 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
     }
 
 
-    // // 特別な組み合わせボタン - 例：START+L同時押しでHOMEボタン
-    // if (flags.sw_flag == false && BUTTON_IsPressed(BUTTON_START) && BUTTON_IsPressed(BUTTON_TL)) {
-    //     gamepad_input->val[usageByte[12]] |= usageMask[12];
-    // }
 
 
     // アナログスティック処理
@@ -181,7 +172,7 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
             }
             break;
             
-        // モード1: HATスイッチ+アナログXY (両方有効)
+        // モード1: HATスイッチ
         case 1:
             // HATスイッチ設定
             if(up && left) {
@@ -205,7 +196,7 @@ void App_DeviceGamepadAct(INPUT_CONTROLS* gamepad_input){
             }
             break;
             
-        // モード2: 何も反応しない
+        // モード2: Z/RZ
         case 2:
             // アナログスティックは中立に設定済み
             gamepad_input->members.analog_stick.Z = left ? 0 : (right ? 255 : 128);
