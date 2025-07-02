@@ -15,9 +15,10 @@ Mapping functionality for button-to-usage configuration
 /* RAM working copy of the mapping data */
 static struct {
     // Bytes 0-7: Global settings
+    uint8_t report_id;                // Report ID (Feature Report送信時に0x00設定)
     uint8_t ver;                      // Version for compatibility checking
     uint8_t crc;                      // CRC8 checksum for data integrity
-    uint8_t global_reserved[6];       // Reserved for future global settings
+    uint8_t global_reserved[5];       // Reserved for future global settings
     
     // Bytes 8-23: Normal mode mapping (16 bytes)
     uint8_t normal_tbl[NUM_BUTTONS];  // Normal mode button-to-usage mapping table (9 bytes)
@@ -104,6 +105,7 @@ void Mapping_Load(void) {
         map.special_tbl[8] = 9;  // Start -> Button 9
         
         // Clear all reserved areas
+        map.report_id = 0x00;  // Initialize report ID
         memset(map.global_reserved, 0, sizeof(map.global_reserved));
         memset(map.normal_reserved, 0, sizeof(map.normal_reserved));
         memset(map.special_reserved, 0, sizeof(map.special_reserved));
@@ -124,7 +126,8 @@ void Mapping_Save(const uint8_t *normal_tbl, const uint8_t *special_tbl) {
     memcpy(map.normal_tbl, normal_tbl, NUM_BUTTONS);
     memcpy(map.special_tbl, special_tbl, NUM_BUTTONS);
     
-    // Update version and CRC
+    // Update version and CRC, ensure report ID is set
+    map.report_id = 0x00;  // Set report ID
     map.ver = MAP_VER;
     map.crc = crc8((uint8_t*)&map, sizeof(map) - 1);
     
@@ -163,25 +166,25 @@ uint8_t Mapping_GetUsage(uint8_t physBtn, uint8_t mode) {
  * @param length Length of the feature report data
  */
 void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
-    // Feature report structure: [Report ID][8 bytes global][16 bytes normal][16 bytes special][24 bytes future]
-    uint8_t dataOffset = 1; // Skip Report ID
+    // Feature report structure: [Report ID + 63 bytes data] = 64 bytes total
+    // Byte 0: Report ID, Byte 1: version, Byte 2: crc, Byte 8-16: normal, Byte 24-32: special
     
     // Ensure we have enough data for complete structure
-    if (length < (dataOffset + 64)) {
+    if (length < 64) {
         return; // Not enough data
     }
     
     uint8_t newNormalMapping[NUM_BUTTONS];
     uint8_t newSpecialMapping[NUM_BUTTONS];
     
-    // Copy normal mode mapping (bytes 9-17 in feature report = bytes 8-16 in structure)
+    // Copy normal mode mapping (bytes 8-16 in feature report)
     for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        newNormalMapping[i] = featureReport[dataOffset + 8 + i];
+        newNormalMapping[i] = featureReport[8 + i];
     }
     
-    // Copy special mode mapping (bytes 25-33 in feature report = bytes 24-32 in structure)
+    // Copy special mode mapping (bytes 24-32 in feature report)
     for (uint8_t i = 0; i < NUM_BUTTONS; i++) {
-        newSpecialMapping[i] = featureReport[dataOffset + 24 + i];
+        newSpecialMapping[i] = featureReport[24 + i];
     }
     
     // Save both mapping tables to flash
@@ -193,12 +196,9 @@ void Mapping_SetFromFeatureReport(uint8_t* featureReport, uint16_t length) {
  * @param featureReport The feature report buffer to be sent to the host
  */
 void Mapping_GetAsFeatureReport(uint8_t* featureReport) {
-    // Set Report ID as first byte
+    // Copy entire map structure (64 bytes) directly
+    memcpy(featureReport, &map, sizeof(map));
+    
+    // Ensure Report ID is set correctly
     featureReport[0] = 0x00;  // Report ID 0
-
-    // Copy entire structure to feature report (64 bytes)
-    // This includes global settings, normal mapping, special mapping, and reserved areas
-    for (uint8_t i = 0; i < sizeof(map); i++) {
-        featureReport[i + 1] = ((uint8_t*)&map)[i];
-    }
 }
